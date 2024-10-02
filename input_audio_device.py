@@ -120,7 +120,7 @@ def update_menu(indicator, input_devices, debug=False):
                 key_description = 'Descripción'
             elif 'Descripcion' in input_device.keys():
                 key_description = 'Descripcion'
-            if input_device[key_name] in active_input_audio_device:
+            if input_device[key_name].strip() in active_input_audio_device.strip():
                 input_audio_devices_items[number_input_device].set_label(f"\t(active) {input_device[key_description]}")
             else:
                 input_audio_devices_items[number_input_device].set_label(f"\t{input_device[key_description]}")
@@ -134,9 +134,28 @@ def update_input_audio_devices(indicator, debug=False):
 
 def get_active_input_audio_device(debug=False):
     # Get output audio devices
-    result = subprocess.run(["pactl", "get-default-source"], capture_output=True, text=True)
+    result = subprocess.run(["pactl", "info"], capture_output=True, text=True)
     if result:
-        return result.stdout
+        active_input_audio_device = result.stdout
+        if len(active_input_audio_device) > 0:
+            for lines in result.stdout.split("\n"):
+                if "Default Source:" in lines or "Fuente por defecto:" in lines:
+                    active_input_audio_device = lines.split(":")[1].strip()
+                    return active_input_audio_device
+    
+    result = subprocess.run(["pactl", "list", "sources"], capture_output=True, text=True)
+    if result:
+        output = result.stdout
+        active_input_audio_device = None
+        for i, line in enumerate(output.split("\n")):
+            if "State" in line or "Estado" in line:
+                state = line.split(":")[1].strip()
+                print(line)
+                print(output.split("\n")[i + 1])
+                if state == "IDLE":
+                    active_input_audio_device = output.split("\n")[i + 1].split(":")[1].strip()
+                    print(f"active_input_audio_device: {active_input_audio_device}")
+                    return active_input_audio_device
     return None
 
 def get_input_audio_devices(debug=False):
