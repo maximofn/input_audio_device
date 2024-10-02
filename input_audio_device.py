@@ -51,8 +51,12 @@ def build_menu(debug=False):
 
     input_devices = get_input_audio_devices(debug)
     input_audio_devices_items = []
+    active_input_audio_device = get_active_input_audio_device(debug)
     for input_device in input_devices:
-        input_device_item = gtk.MenuItem(label=f"\t{input_device['Description']}")
+        if input_device['Name'] in active_input_audio_device:
+            input_device_item = gtk.MenuItem(label=f"\t(active) {input_device['Description']}")
+        else:
+            input_device_item = gtk.MenuItem(label=f"\t{input_device['Description']}")
         input_device_item.connect('activate', change_input_device, input_device['id'])
         menu.append(input_device_item)
         input_audio_devices_items.append(input_device_item)
@@ -94,8 +98,12 @@ def update_menu(indicator, input_devices, debug=False):
 
     # If the number of devices has not changed, update the devices
     else:
+        active_input_audio_device = get_active_input_audio_device(debug)
         for number_input_device, input_device in enumerate(input_devices):
-            input_audio_devices_items[number_input_device].set_label(f"\t{input_device['Description']}")
+            if input_device['Name'] in active_input_audio_device:
+                input_audio_devices_items[number_input_device].set_label(f"\t(active) {input_device['Description']}")
+            else:
+                input_audio_devices_items[number_input_device].set_label(f"\t{input_device['Description']}")
 
 def update_input_audio_devices(indicator, debug=False):
     if debug: print("\n Input audio devices:")
@@ -103,6 +111,13 @@ def update_input_audio_devices(indicator, debug=False):
     update_menu(indicator, input_devices, debug)
 
     return True
+
+def get_active_input_audio_device(debug=False):
+    # Get output audio devices
+    result = subprocess.run(["pactl", "get-default-source"], capture_output=True, text=True)
+    if result:
+        return result.stdout
+    return None
 
 def get_input_audio_devices(debug=False):
     # Get output audio devices
